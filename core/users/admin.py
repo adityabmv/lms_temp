@@ -1,9 +1,22 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
-from .models import User
-from django.contrib.auth.models import Group
+from .models import User, UserInstitution
 
+
+class UserInstitutionInline(admin.TabularInline):
+    """Inline admin to display and manage UserInstitution relationships."""
+    model = User.institutions.through  # Specify the through model for ManyToManyField
+    extra = 1  # Number of extra rows displayed by default
+    verbose_name = "Institution"
+    verbose_name_plural = "Institutions"
+
+class UserInstitutionAdmin(admin.ModelAdmin):
+    """Admin configuration for the UserInstitution model."""
+    list_display = ("user", "institution", "created_at", "updated_at")
+    search_fields = ("user__email", "institution__name")
+    list_filter = ("institution",)
+    ordering = ("user", "institution")
 
 class UserAdmin(BaseUserAdmin):
     """Custom admin for the User model."""
@@ -39,34 +52,15 @@ class UserAdmin(BaseUserAdmin):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email", "password1", "password2", "is_staff", "is_active"),
+                "fields": ("email", "password1", "password2", "first_name", "last_name", "is_staff", "is_active"),
             },
         ),
     )
 
-
-
-# Unregister the default Group admin
-admin.site.unregister(Group)
-
-
-@admin.register(Group)
-class CustomGroupAdmin(admin.ModelAdmin):
-    """Custom admin for Group to move it under the Users section."""
-
-    list_display = ("name",)  # Display the name of the group
-    search_fields = ("name",)
-    ordering = ("name",)
-    filter_horizontal = ("permissions",)  # Allows selecting permissions in a user-friendly way
-
-    class Meta:
-        verbose_name = "Role"
-        verbose_name_plural = "Roles"
-
-
-# Override the default app label for Group to move it under the Users section
-Group._meta.app_label = "users"  # Change app label for the Group model
+    # Inline for UserInstitution relationship
+    inlines = [UserInstitutionInline]
 
 
 # Register the custom User model and the custom UserAdmin
 admin.site.register(User, UserAdmin)
+admin.site.register(UserInstitution, UserInstitutionAdmin)

@@ -1,5 +1,4 @@
 from django.db import models
-from core.users.models import User
 
 
 class Institution(models.Model):
@@ -16,16 +15,5 @@ class Institution(models.Model):
     )
     is_active = models.BooleanField(default=False)
 
-
-class UserInstitution(models.Model):
-    """Relationship between users and institutions."""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="institutions")
-    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name="users")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ("user", "institution")  # Ensure unique user-institution pair
-
     def __str__(self):
-        return f"{self.user.email} at {self.institution.name}"
+        return self.name + (" (active)" if self.is_active else "(inactive)")

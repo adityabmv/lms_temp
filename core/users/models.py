@@ -3,12 +3,18 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.db import transaction, IntegrityError, models
 from firebase_admin import auth as firebase_auth
 from django.utils.translation import gettext_lazy as _
+from core.institution.models import Institution  # Import the Institution model
+from core.users.services.firebase_service import FirebaseAuthService
 
 
 class CustomUserManager(BaseUserManager):
     """Custom manager for User model with Firebase integration."""
 
-    def create_user(self, email, password=None, **extra_fields):
+    def _create_user(self, email, password, is_staff=False, is_superuser=False, firebase_uid=None):
+        """
+        Internal method to handle user creation.
+        This is used by both `create_user` and `create_superuser`.
+        """
         if not email:
             raise ValueError(_("The Email field must be set"))
 
@@ -16,46 +22,42 @@ class CustomUserManager(BaseUserManager):
 
         try:
             with transaction.atomic():
-                # Create user in Firebase
-                firebase_user = firebase_auth.create_user(
+                # Create the Django user
+                user: User = self.model(
                     email=email,
-                    password=password,
+                    firebase_uid=firebase_uid,
+                    is_staff=is_staff,
+                    is_superuser=is_superuser,
                 )
-
-                # Add Firebase UID to extra_fields
-                extra_fields["firebase_uid"] = firebase_user.uid
-
-                # Create user in Django
-                user = self.model(email=email, **extra_fields)
                 user.set_password(password)
                 user.save(using=self._db)
 
-                # Assign the "student" role by default
-                student_group, _ = Group.objects.get_or_create(name="student")
-                user.groups.add(student_group)
+                # Assign the "student" role by default if not superuser
+                if not is_superuser:
+                    student_group, _ = Group.objects.get_or_create(name="student")
+                    user.groups.add(student_group)
+                else:
+                    # Assign the "superuser" role
+                    superuser_group, _ = Group.objects.get_or_create(name="superuser")
+                    user.groups.add(superuser_group)
                 user.save()
-
                 return user
 
         except Exception as e:
-            # Roll back Firebase user creation if Django user creation fails
-            if "firebase_user" in locals():  # Check if Firebase user was created
-                firebase_auth.delete_user(firebase_user.uid)
-            raise IntegrityError(
-                ("Failed to create user: {}").format(str(e))
-            )
+            raise IntegrityError(e)
+    def create_user(self, email, password=None, **extra_fields):
+        """
+        Create a regular user with student role and Firebase integration.
+        """
+        print("this is called")
+        return self._create_user(email, password, is_staff=False, is_superuser=False)
 
-    def create_superuser(self, email, password=None, **extra_fields):
-        """Create and return a superuser with Firebase integration."""
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
+    def create_superuser(self, email, password=None):
+        """
+        Create a superuser with Firebase integration.
+        """
+        return self._create_user(email, password, is_staff=True, is_superuser=True)
 
-        if extra_fields.get("is_staff") is not True:
-            raise ValueError(_("Superuser must have is_staff=True."))
-        if extra_fields.get("is_superuser") is not True:
-            raise ValueError(_("Superuser must have is_superuser=True."))
-
-        return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractUser):
@@ -65,17 +67,32 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     firebase_uid = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
+    institutions = models.ManyToManyField(
+        Institution,
+        through="UserInstitution",  # Specify the through model
+        related_name="users",  # Backward relationship from Institution to User
+    )
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []  # No additional fields are required for superuser creation
 
     objects = CustomUserManager()
 
+
     def __str__(self):
         return self.email
 
-    def save(self, *args, **kwargs):
-        """Ensure all users are added to the student group by default."""
-        super().save(*args, **kwargs)  # Save the user first
-        if not self.groups.exists():  # Check if the user has no group
-            student_group, _ = Group.objects.get_or_create(name="student")
-            self.groups.add(student_group)
+
+class UserInstitution(models.Model):
+    """Intermediate model for User-Institution relationship."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_institution_links")
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name="institution_user_links")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "institution")  # Ensure unique user-institution pair
+
+    def __str__(self):
+        return f"{self.user.email} at {self.institution.name}"
