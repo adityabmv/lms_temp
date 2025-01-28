@@ -15,7 +15,7 @@ class InstitutionAdmin(GuardedModelAdmin):
         if request.user.is_superuser:
             return super().get_queryset(request)
         if request.user.groups.filter(name="student").exists():
-            return InstitutionPermissionManager.get_objects(request.user)
+            return InstitutionPermissionManager.get_objects(request.user, Institution.objects.all())
 
     def has_module_permission(self, request):
         return InstitutionPermissionManager.has_permission(request.user, "institution.view_institution")
