@@ -37,6 +37,7 @@ firebase_app = initialize_app(cred)
 def test_firebase():
     try:
         user = auth.get_user_by_email("testuser@example.com")
+
         print(f"User: {user.uid}")
     except Exception as e:
         print(f"Error: {str(e)}")

@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -25,8 +24,9 @@ SECRET_KEY = 'django-insecure-bx)!$s-b%g@l96_e)zbsce*@db8rlw%7mvj+(za%@5loa_e&ln
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
+CORS_ORIGIN_ALLOW_ALL = True
 
 # Application definition
 
@@ -39,13 +39,18 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
 
+    'core.assessment',
     'core.authentication',
-    'core.users',
+    'core.course',
+    'core.docs',
     'core.institution',
+    'core.users',
+    'core.utils',
 
-    "rest_framework",
-    "corsheaders",
-    "guardian"
+    'rest_framework',
+    'corsheaders',
+    'guardian',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -56,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -78,7 +84,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -93,7 +98,6 @@ AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",  # Default backend
     "guardian.backends.ObjectPermissionBackend",  # Add guardian
 )
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -115,7 +119,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'users.User'
 
-
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "core.authentication.firebase.FirebaseAuthentication",
@@ -123,8 +126,15 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-}
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -137,7 +147,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
@@ -148,9 +157,9 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 import os
 from decouple import config
+
 FIREBASE_ADMIN_SDK_CREDENTIALS_PATH = config("FIREBASE_ADMIN_SDK_CREDENTIALS_PATH", default="")
 print(FIREBASE_ADMIN_SDK_CREDENTIALS_PATH)
 
@@ -196,4 +205,30 @@ LOGGING = {
             "propagate": False,
         },
     },
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Core API',
+    'DESCRIPTION': 'API for Core',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': True,
+    'SERVE_URLCONF': 'core.urls',
+    'SCHEMA_PATH_PREFIX': 'api/v1/docs/',
+    'POSTPROCESSING_HOOKS': ['core.utils.schema.add_x_tag_groups'],
+    "TAGS": [
+        {"name": "Auth", "description": "Endpoints for authentication and user management"},
+        {"name": "Assessment", "description": "Endpoints for assessments and related operations"},
+        {"name": "Course", "description": "Endpoints for course management"},
+        {"name": "Institution", "description": "Endpoints for institution management"},
+        {"name": "User", "description": "Endpoints for user management"},
+        {"name": "Module", "description": "Endpoints for modules and related operations"},
+        {"name": "Section", "description": "Endpoints for sections and related operations"},
+        {"name": "Question", "description": "Endpoints for questions and related operations"},
+        {"name": "Course Instance", "description": "Endpoints for course instances and related operations"},
+        {"name": "Video Assessment", "description": "Endpoints for video assessments and related operations"},
+        {"name": "StandAlone Assessment",
+         "description": "Endpoints for stand alone assessments and related operations"},
+        {"name": "Solution", "description": "Endpoints for solutions and related operations"},
+
+    ],
 }

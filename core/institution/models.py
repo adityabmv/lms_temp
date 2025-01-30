@@ -1,9 +1,12 @@
+import uuid
+
 from django.db import models
 
-# from core.users.permissions.user_institute_permission import InstitutionPermissionManager
+from core.utils.models import TimestampMixin
 
 
-class Institution(models.Model):
+class Institution(TimestampMixin, models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=1000, unique=True)
     description = models.TextField(
         null=True, blank=True, max_length=3000
@@ -16,11 +19,6 @@ class Institution(models.Model):
         related_name="children",
     )
     is_active = models.BooleanField(default=False)
-
-    # def __init__(self):
-    #     super().__init__()
-        # Do this properly handle circular dependencies
-        # InstitutionPermissionManager.init()
 
 
     def __str__(self):

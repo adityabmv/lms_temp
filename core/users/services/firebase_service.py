@@ -1,3 +1,5 @@
+# users/services/firebase_service.py
+
 import logging
 from firebase_admin import auth as firebase_auth
 

@@ -1,3 +1,5 @@
+# users/signals/user_signal.py
+
 import logging
 from django.db.models.signals import m2m_changed, pre_save
 from ..models import User, UserInstitution
@@ -20,19 +22,21 @@ def handle_user_deletion(sender, instance, **kwargs):
         except Exception as e:
             logger.exception(f"Error handling user deletion for {instance.email}: {e}")
 
-@receiver(pre_save, sender=User)
-def handle_user_creation(sender, instance:User, **kwargs):
-    """
-    Pre-save signal to handle Firebase user creation.
-    If the user does not already have a Firebase UID, create one.
-    """
-    if not instance.pk:  # New user being created
-        try:
-            firebase_user = UserService.create_user(instance.email, instance.password)
-            instance.firebase_uid = firebase_user.uid  # Attach Firebase UID to the instance
-        except Exception as e:
-            raise ValueError(f"Failed to create user in Firebase: {str(e)}")
-
+# @receiver(pre_save, sender=User)
+# def handle_user_creation(sender, instance:User, **kwargs):
+#     """
+#     Pre-save signal to handle Firebase user creation.
+#     If the user does not already have a Firebase UID, create one.
+#     """
+#     print("Handling user creation")
+#     if not instance.pk:  # New user being created
+#         try:
+#             print("Creating user in Firebase")
+#             firebase_user = UserService.create_user(instance.email, instance.password)
+#             instance.firebase_uid = firebase_user.uid  # Attach Firebase UID to the instance
+#         except Exception as e:
+#             raise ValueError(f"Failed to create user in Firebase: {str(e)}")
+#
 @receiver(pre_save, sender=User)
 def handle_user_disable(sender, instance, **kwargs):
     """

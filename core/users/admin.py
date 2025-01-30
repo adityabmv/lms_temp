@@ -60,6 +60,16 @@ class UserAdmin(BaseUserAdmin):
     # Inline for UserInstitution relationship
     inlines = [UserInstitutionInline]
 
+    def save_model(self, request, obj, form, change):
+        if not change:
+            # Extract data from form
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password1']
+            # Use your manager's create_user method
+            User.objects.create_user(email=email, password=password)
+        else:
+            super().save_model(request, obj, form, change)
+
 
 # Register the custom User model and the custom UserAdmin
 admin.site.register(User, UserAdmin)

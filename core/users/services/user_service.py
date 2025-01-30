@@ -1,3 +1,5 @@
+# users/services/user_service.py
+
 import logging
 
 from django.contrib.auth.models import Group

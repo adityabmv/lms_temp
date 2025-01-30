@@ -1,3 +1,5 @@
+# users/apps.py
+
 from django.apps import AppConfig
 
 
@@ -6,4 +8,4 @@ class UsersConfig(AppConfig):
     name = 'core.users'
 
     def ready(self):
-        import core.users.signals
+        from core.users.signals import user_signal
